@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ambient Sync | Offline Simulator</title>
+<style>
+:root { color-scheme: dark; font-family: system-ui, sans-serif; background:#090b14; color:#f5f7ff; }
+body {max-width:760px; margin:0 auto; padding:24px;}
+.panel{background:#151a2a;border:1px solid #343a50;border-radius:18px;padding:20px;margin:18px 0}
+h1{margin-bottom:4px} .hint{color:#b8c2d7}
+.scene{position:relative;display:grid;place-items:center;height:240px;overflow:hidden;background:linear-gradient(150deg,#22283a,#10121c);border-radius:14px}
+.light{width:80%;height:9px; border-radius:99px; background:rgb(106,59,255);box-shadow:0 0 12px 3px rgba(123,81,255,.5);opacity:.6;transition:opacity 90ms,box-shadow 90ms}
+input[type=range]{width:100%} button{font:inherit;padding:10px 16px;border:0;border-radius:12px;background:#9576ff;color:#0c0816;cursor:pointer;font-weight:700}
+button:focus-visible{outline:3px solid #fff}
+.readout{font-variant-numeric:tabular-nums;font-size:28px;font-weight:700}
+</style>
+</head>
+<body>
+<h1>Ambient Sync</h1>
+<p class="hint">Offline lighting simulator — no vehicle connection, no audio recording.</p>
+<div class="panel">
+<div class="scene" aria-label="Simulated BMW dashboard lighting"><div class="light" id="light"></div></div>
+<p>Simulated bass level: <span id="number" class="readout">0%</span></p>
+<input id="level" type="range" min="0" max="100" value="0" aria-label="Simulated bass intensity">
+<p><button id="demo" type="button">Start demo beat</button></p>
+<p id="status" class="hint" role="status">Manual mode. Move the slider to test the lighting.</p>
+</div>
+<script src="./simulator.js"></script>
+</body>
+</html>
