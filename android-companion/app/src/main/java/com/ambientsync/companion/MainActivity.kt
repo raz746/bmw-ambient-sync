@@ -13,16 +13,18 @@ import android.widget.*
 class MainActivity : Activity() {
     private val captureRequest = 42
     private val micRequest = 43
+    private var acceptingUpdates = false
     private lateinit var meter: ProgressBar
     private lateinit var status: TextView
     private lateinit var light: TextView
     private val updates = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            if (!acceptingUpdates) return
             val value = intent?.getIntExtra("level", 0) ?: 0
             val source = intent?.getStringExtra("source") ?: "Playback"
             meter.progress = value
             status.text = "$source intensity: $value%"
-            light.alpha = 0.15f + value / 118f
+            light.alpha = 0.12f + (intent?.getIntExtra("pulse", value) ?: value).coerceIn(0, 100) / 114f
         }
     }
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,7 +38,7 @@ class MainActivity : Activity() {
             text = value; textSize = size; setTextColor(Color.WHITE)
             setPadding(0, 10, 0, 10)
         }
-        layout.addView(label("Ambient Sync v0.2", 28f))
+        layout.addView(label("Ambient Sync v0.3", 28f))
         layout.addView(label("Mic bass detector + playback capture test. Audio is processed locally and never stored.", 15f))
         light = label("━━━━━━━━━━━━", 35f).apply { setTextColor(Color.rgb(158, 109, 255)); alpha = 0.15f }
         layout.addView(light)
@@ -48,6 +50,7 @@ class MainActivity : Activity() {
             text = "Start microphone bass detection"
             setOnClickListener {
                 stopService(Intent(this@MainActivity, CaptureService::class.java))
+                acceptingUpdates = true
                 if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startMic()
                 else requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), micRequest)
             }
@@ -56,6 +59,7 @@ class MainActivity : Activity() {
             text = "Test internal playback capture"
             setOnClickListener {
                 stopService(Intent(this@MainActivity, MicService::class.java))
+                acceptingUpdates = true
                 val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                 startActivityForResult(mgr.createScreenCaptureIntent(), captureRequest)
             }
@@ -63,6 +67,7 @@ class MainActivity : Activity() {
         layout.addView(Button(this).apply {
             text = "Stop"
             setOnClickListener {
+                acceptingUpdates = false
                 stopService(Intent(this@MainActivity, CaptureService::class.java))
                 stopService(Intent(this@MainActivity, MicService::class.java))
                 meter.progress = 0; light.alpha = 0.15f; status.text = "Stopped"
