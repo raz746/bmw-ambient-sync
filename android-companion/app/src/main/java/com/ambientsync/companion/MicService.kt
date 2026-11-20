@@ -32,6 +32,10 @@ class MicService : Service() {
             worker = Thread {
                 val buffer = ShortArray(2048)
                 var smoothed = 0.0
+                var baseline = 0.0
+                var peak = 0.0001
+                var pulse = 0.0
+                var lastBeatMs = 0L
                 try {
                     recorder?.startRecording()
                     while (running) {
@@ -53,11 +57,22 @@ class MicService : Service() {
                             energy += max(0.0, s1 * s1 + s2 * s2 - coeff * s1 * s2)
                         }
                         val amplitude = sqrt(energy / frequencies.size) / count
-                        val normalized = (amplitude * 1800.0).coerceIn(0.0, 1.0)
-                        smoothed = 0.65 * smoothed + 0.35 * normalized
-                        val level = (smoothed * 100).roundToInt()
+                        baseline = if (baseline == 0.0) amplitude else baseline * 0.985 + amplitude * 0.015
+                        peak = max(amplitude, peak * 0.995)
+                        val relative = ((amplitude - baseline * 0.7) / max(peak, 0.00001)).coerceIn(0.0, 1.0)
+                        smoothed = 0.70 * smoothed + 0.30 * relative
+                        val level = (smoothed * 100).roundToInt().coerceIn(0, 100)
+                        val now = SystemClock.elapsedRealtime()
+                        val onset = amplitude > baseline * 1.65 && amplitude > 0.00001
+                        if (onset && now - lastBeatMs > 220L) {
+                            pulse = 1.0
+                            lastBeatMs = now
+                        } else {
+                            pulse *= 0.65
+                        }
+                        if (amplitude < 0.00001) { pulse = 0.0; smoothed *= 0.7 }
                         sendBroadcast(Intent(CaptureService.ACTION_LEVEL).setPackage(packageName)
-                            .putExtra("level", level).putExtra("source", "Mic bass"))
+                            .putExtra("level", level).putExtra("pulse", (pulse * 100).roundToInt()).putExtra("source", "Mic bass"))
                     }
                 } catch (_: Exception) { }
                 stopSelf()
